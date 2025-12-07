@@ -1,0 +1,81 @@
+---
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { loadAllRecipes } from '@lib/recipes';
+
+const recipes = loadAllRecipes();
+---
+
+<AdminLayout title="Dashboard">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex items-center justify-between mb-8">
+      <h1 class="font-display text-3xl font-semibold text-stone-900">Dashboard</h1>
+      <a href="/admin/new" class="bg-terracotta-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-terracotta-700 transition-colors">
+        + New Recipe
+      </a>
+    </div>
+    
+    <!-- Stats -->
+    <div class="grid sm:grid-cols-3 gap-4 mb-8">
+      <div class="bg-white rounded-xl p-6 border border-stone-200">
+        <p class="text-sm text-stone-500 mb-1">Total Recipes</p>
+        <p class="text-3xl font-semibold text-stone-900">{recipes.length}</p>
+      </div>
+      <div class="bg-white rounded-xl p-6 border border-stone-200">
+        <p class="text-sm text-stone-500 mb-1">Tags Used</p>
+        <p class="text-3xl font-semibold text-stone-900">
+          {new Set(recipes.flatMap(r => r.tags)).size}
+        </p>
+      </div>
+      <div class="bg-white rounded-xl p-6 border border-stone-200">
+        <p class="text-sm text-stone-500 mb-1">Last Updated</p>
+        <p class="text-lg font-medium text-stone-900">
+          {recipes[0]?.updated_at || 'Never'}
+        </p>
+      </div>
+    </div>
+    
+    <!-- Recipe List -->
+    <div class="bg-white rounded-xl border border-stone-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-stone-200">
+        <h2 class="font-display text-lg font-semibold text-stone-900">All Recipes</h2>
+      </div>
+      
+      {recipes.length > 0 ? (
+        <ul class="divide-y divide-stone-100">
+          {recipes.map(recipe => (
+            <li class="px-6 py-4 hover:bg-stone-50 transition-colors">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="font-medium text-stone-900">{recipe.title}</h3>
+                  <p class="text-sm text-stone-500">
+                    {recipe.tags.slice(0, 3).join(', ')}
+                    {recipe.tags.length > 3 && ` +${recipe.tags.length - 3} more`}
+                  </p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <a href={`/recipes/${recipe.slug}`} class="text-sm text-stone-500 hover:text-stone-700">
+                    View
+                  </a>
+                  <a href={`/admin/edit/${recipe.slug}`} class="text-sm text-terracotta-600 hover:text-terracotta-700 font-medium">
+                    Edit
+                  </a>
+                  <a href={`/admin/variation/${recipe.slug}`} class="text-sm text-herb-600 hover:text-herb-700">
+                    Variation
+                  </a>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div class="px-6 py-12 text-center">
+          <p class="text-stone-500 mb-4">No recipes yet</p>
+          <a href="/admin/new" class="text-terracotta-600 hover:text-terracotta-700 font-medium">
+            Create your first recipe →
+          </a>
+        </div>
+      )}
+    </div>
+  </div>
+</AdminLayout>
+

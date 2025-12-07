@@ -1,0 +1,121 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet" />
+    <title>{title} · Admin</title>
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  </head>
+  <body class="min-h-screen bg-stone-100 text-stone-900 antialiased">
+    <div id="admin-app" class="min-h-screen flex flex-col">
+      <!-- Header -->
+      <header class="bg-white border-b border-stone-200 sticky top-0 z-50">
+        <nav class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex items-center justify-between h-14">
+            <div class="flex items-center gap-4">
+              <a href="/" class="font-display text-lg font-semibold text-stone-600 hover:text-stone-900 transition-colors">
+                ← Back to site
+              </a>
+              <span class="text-stone-300">|</span>
+              <span class="text-sm font-medium text-terracotta-600">Admin</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <a href="/admin" class="text-sm text-stone-600 hover:text-stone-900">Dashboard</a>
+              <a href="/admin/new" class="text-sm text-stone-600 hover:text-stone-900">New Recipe</a>
+              <button id="logout-btn" class="text-sm text-stone-500 hover:text-stone-700">Logout</button>
+            </div>
+          </div>
+        </nav>
+      </header>
+      
+      <!-- Auth Gate -->
+      <div id="auth-gate" class="flex-1 flex items-center justify-center p-8">
+        <div class="text-center">
+          <h1 class="font-display text-2xl font-semibold text-stone-900 mb-4">Admin Access Required</h1>
+          <p class="text-stone-600 mb-6">Please log in to access the admin area.</p>
+          <button id="login-btn" class="bg-terracotta-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-terracotta-700 transition-colors">
+            Log In
+          </button>
+        </div>
+      </div>
+      
+      <!-- Main Content (hidden until authenticated) -->
+      <main id="admin-content" class="flex-1 hidden">
+        <slot />
+      </main>
+    </div>
+    
+    <script>
+      // Initialize Netlify Identity
+      if (window.netlifyIdentity) {
+        window.netlifyIdentity.on('init', user => {
+          updateUI(user);
+        });
+        
+        window.netlifyIdentity.on('login', user => {
+          updateUI(user);
+          window.netlifyIdentity.close();
+        });
+        
+        window.netlifyIdentity.on('logout', () => {
+          updateUI(null);
+        });
+        
+        // Login button
+        document.getElementById('login-btn')?.addEventListener('click', () => {
+          window.netlifyIdentity.open('login');
+        });
+        
+        // Logout button
+        document.getElementById('logout-btn')?.addEventListener('click', () => {
+          window.netlifyIdentity.logout();
+        });
+      }
+      
+      function updateUI(user) {
+        const authGate = document.getElementById('auth-gate');
+        const adminContent = document.getElementById('admin-content');
+        const logoutBtn = document.getElementById('logout-btn');
+        
+        if (user) {
+          authGate?.classList.add('hidden');
+          adminContent?.classList.remove('hidden');
+          logoutBtn?.classList.remove('hidden');
+        } else {
+          authGate?.classList.remove('hidden');
+          adminContent?.classList.add('hidden');
+          logoutBtn?.classList.add('hidden');
+        }
+      }
+      
+      // Store token for API calls
+      window.getAuthToken = async function() {
+        const user = window.netlifyIdentity?.currentUser();
+        if (!user) return null;
+        
+        try {
+          const token = await user.jwt();
+          return token;
+        } catch {
+          return null;
+        }
+      };
+    </script>
+  </body>
+</html>
+

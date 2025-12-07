@@ -1,0 +1,72 @@
+---
+import Layout from '@layouts/Layout.astro';
+import Header from '@components/Header.astro';
+import Footer from '@components/Footer.astro';
+import Tag from '@components/Tag.astro';
+import { loadAllRecipes, getTagsIndex } from '@lib/recipes';
+import { categorizeTags, CANONICAL_TAGS } from '@lib/tags';
+
+const recipes = loadAllRecipes();
+const tagsIndex = getTagsIndex(recipes);
+const { categorized, uncategorized } = categorizeTags(tagsIndex);
+
+const categoryLabels: Record<string, string> = {
+  meal: 'Meal Type',
+  cuisine: 'Cuisine',
+  diet: 'Dietary',
+  method: 'Cooking Method',
+  time: 'Time & Prep',
+  season: 'Season',
+};
+---
+
+<Layout title="Tags · Recipes">
+  <div class="min-h-screen flex flex-col">
+    <Header currentPath="/tags" />
+    
+    <main class="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+      <h1 class="font-display text-3xl sm:text-4xl font-semibold text-stone-900 mb-2">Tags</h1>
+      <p class="text-stone-600 mb-8">
+        Browse recipes by category. {tagsIndex.total} tags across {recipes.length} recipes.
+      </p>
+      
+      <!-- Categorized tags -->
+      <div class="space-y-8">
+        {Object.entries(categorized).map(([category, tags]) => tags.length > 0 && (
+          <section>
+            <h2 class="font-display text-lg font-semibold text-stone-900 mb-3">
+              {categoryLabels[category] || category}
+            </h2>
+            <div class="flex flex-wrap gap-2">
+              {tags.map(({ tag, count }) => (
+                <Tag tag={tag} count={count} size="md" />
+              ))}
+            </div>
+          </section>
+        ))}
+        
+        {uncategorized.length > 0 && (
+          <section>
+            <h2 class="font-display text-lg font-semibold text-stone-900 mb-3">Other</h2>
+            <div class="flex flex-wrap gap-2">
+              {uncategorized.map(({ tag, count }) => (
+                <Tag tag={tag} count={count} size="md" />
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+      
+      {tagsIndex.total === 0 && (
+        <div class="text-center py-16">
+          <div class="text-5xl mb-4">🏷️</div>
+          <h2 class="font-display text-xl font-semibold text-stone-900 mb-2">No tags yet</h2>
+          <p class="text-stone-600">Tags will appear here as you add recipes.</p>
+        </div>
+      )}
+    </main>
+    
+    <Footer />
+  </div>
+</Layout>
+

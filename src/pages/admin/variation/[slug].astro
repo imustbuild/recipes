@@ -1,0 +1,407 @@
+---
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { loadAllRecipes, loadRecipe } from '@lib/recipes';
+import { CANONICAL_TAGS } from '@lib/tags';
+
+export async function getStaticPaths() {
+  const recipes = loadAllRecipes();
+  return recipes.map(recipe => ({
+    params: { slug: recipe.slug },
+  }));
+}
+
+const { slug } = Astro.params;
+const sourceRecipe = loadRecipe(slug as string);
+const allTags = Object.values(CANONICAL_TAGS).flat();
+
+if (!sourceRecipe) {
+  return Astro.redirect('/admin');
+}
+---
+
+<AdminLayout title={`Variation of: ${sourceRecipe.title}`}>
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+      <a href="/admin" class="text-sm text-stone-500 hover:text-stone-700 mb-2 inline-block">← Back to Dashboard</a>
+      <h1 class="font-display text-3xl font-semibold text-stone-900">Create Variation</h1>
+      <p class="text-stone-600">Based on: <a href={`/recipes/${sourceRecipe.slug}`} class="text-terracotta-600 hover:underline">{sourceRecipe.title}</a></p>
+    </div>
+    
+    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-8">
+      <p class="text-sm text-amber-800">
+        <strong>Creating a variation:</strong> This will create a new recipe based on the original. Modify the fields below to customize your variation.
+      </p>
+    </div>
+    
+    <form id="variation-form" class="space-y-8" data-source-slug={sourceRecipe.slug}>
+      <!-- Basic Info -->
+      <section class="bg-white rounded-xl border border-stone-200 p-6">
+        <h2 class="font-display text-lg font-semibold text-stone-900 mb-4">Basic Info</h2>
+        
+        <div class="space-y-4">
+          <div>
+            <label for="title" class="block text-sm font-medium text-stone-700 mb-1">
+              New Title <span class="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              required
+              value={`${sourceRecipe.title} (Variation)`}
+              class="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-400"
+            />
+          </div>
+          
+          <div>
+            <label for="description" class="block text-sm font-medium text-stone-700 mb-1">Description</label>
+            <textarea
+              id="description"
+              name="description"
+              rows="2"
+              class="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-400"
+            >{sourceRecipe.description}</textarea>
+          </div>
+          
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label for="servings" class="block text-sm font-medium text-stone-700 mb-1">Servings</label>
+              <input
+                type="number"
+                id="servings"
+                name="servings"
+                min="1"
+                value={sourceRecipe.servings}
+                class="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-400"
+              />
+            </div>
+            <div>
+              <label for="source_url" class="block text-sm font-medium text-stone-700 mb-1">Source URL</label>
+              <input
+                type="url"
+                id="source_url"
+                name="source_url"
+                value={sourceRecipe.source_url}
+                class="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-400"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Times -->
+      <section class="bg-white rounded-xl border border-stone-200 p-6">
+        <h2 class="font-display text-lg font-semibold text-stone-900 mb-4">Time</h2>
+        
+        <div class="grid sm:grid-cols-3 gap-4">
+          <div>
+            <label for="prep_minutes" class="block text-sm font-medium text-stone-700 mb-1">Prep (minutes)</label>
+            <input
+              type="number"
+              id="prep_minutes"
+              name="prep_minutes"
+              min="0"
+              value={sourceRecipe.times.prep_minutes || ''}
+              class="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-400"
+            />
+          </div>
+          <div>
+            <label for="cook_minutes" class="block text-sm font-medium text-stone-700 mb-1">Cook (minutes)</label>
+            <input
+              type="number"
+              id="cook_minutes"
+              name="cook_minutes"
+              min="0"
+              value={sourceRecipe.times.cook_minutes || ''}
+              class="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-400"
+            />
+          </div>
+          <div>
+            <label for="total_minutes" class="block text-sm font-medium text-stone-700 mb-1">Total</label>
+            <input
+              type="number"
+              id="total_minutes"
+              name="total_minutes"
+              min="0"
+              readonly
+              value={sourceRecipe.times.total_minutes || ''}
+              class="w-full px-4 py-2 rounded-lg border border-stone-200 bg-stone-50 text-stone-500"
+            />
+          </div>
+        </div>
+      </section>
+      
+      <!-- Tags -->
+      <section class="bg-white rounded-xl border border-stone-200 p-6">
+        <h2 class="font-display text-lg font-semibold text-stone-900 mb-4">Tags</h2>
+        
+        <div class="flex flex-wrap gap-2" id="tags-container">
+          {allTags.map(tag => (
+            <label class:list={[
+              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border cursor-pointer transition-colors",
+              sourceRecipe.tags.includes(tag) 
+                ? "bg-herb-100 border-herb-300 text-herb-700" 
+                : "border-stone-200 hover:bg-stone-50"
+            ]}>
+              <input type="checkbox" name="tags" value={tag} checked={sourceRecipe.tags.includes(tag)} class="sr-only" />
+              <span class="text-sm">{tag}</span>
+            </label>
+          ))}
+        </div>
+        
+        <div class="mt-4">
+          <label for="custom_tags" class="block text-sm font-medium text-stone-700 mb-1">Custom tags</label>
+          <input
+            type="text"
+            id="custom_tags"
+            name="custom_tags"
+            value={sourceRecipe.tags.filter(t => !allTags.includes(t)).join(', ')}
+            class="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-400"
+          />
+        </div>
+      </section>
+      
+      <!-- Ingredients -->
+      <section class="bg-white rounded-xl border border-stone-200 p-6">
+        <h2 class="font-display text-lg font-semibold text-stone-900 mb-4">Ingredients</h2>
+        
+        <div id="ingredients-list" class="space-y-3"></div>
+        
+        <button type="button" id="add-ingredient" class="mt-4 text-sm text-terracotta-600 hover:text-terracotta-700 font-medium">
+          + Add Ingredient
+        </button>
+      </section>
+      
+      <!-- Instructions -->
+      <section class="bg-white rounded-xl border border-stone-200 p-6">
+        <h2 class="font-display text-lg font-semibold text-stone-900 mb-4">Instructions</h2>
+        
+        <div id="instructions-list" class="space-y-3"></div>
+        
+        <button type="button" id="add-instruction" class="mt-4 text-sm text-terracotta-600 hover:text-terracotta-700 font-medium">
+          + Add Step
+        </button>
+      </section>
+      
+      <!-- Notes -->
+      <section class="bg-white rounded-xl border border-stone-200 p-6">
+        <h2 class="font-display text-lg font-semibold text-stone-900 mb-4">Notes</h2>
+        
+        <textarea
+          id="notes"
+          name="notes"
+          rows="3"
+          class="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-400"
+        >{sourceRecipe.notes}</textarea>
+      </section>
+      
+      <!-- Submit -->
+      <div class="flex items-center justify-end gap-4">
+        <a href="/admin" class="px-4 py-2 text-stone-600 hover:text-stone-900">Cancel</a>
+        <button
+          type="submit"
+          class="bg-herb-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-herb-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Create Variation
+        </button>
+      </div>
+    </form>
+    
+    <div id="status-message" class="hidden fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg"></div>
+  </div>
+  
+  <script define:vars={{ existingIngredients: sourceRecipe.ingredients, existingInstructions: sourceRecipe.instructions }}>
+    // Auto-calculate total time
+    const prepInput = document.getElementById('prep_minutes');
+    const cookInput = document.getElementById('cook_minutes');
+    const totalInput = document.getElementById('total_minutes');
+    
+    function updateTotal() {
+      const prep = parseInt(prepInput.value) || 0;
+      const cook = parseInt(cookInput.value) || 0;
+      totalInput.value = String(prep + cook);
+    }
+    
+    prepInput?.addEventListener('input', updateTotal);
+    cookInput?.addEventListener('input', updateTotal);
+    
+    // Tag checkbox styling (same as edit page)
+    document.querySelectorAll('#tags-container label').forEach(label => {
+      const checkbox = label.querySelector('input');
+      checkbox?.addEventListener('change', () => {
+        if (checkbox.checked) {
+          label.classList.add('bg-herb-100', 'border-herb-300', 'text-herb-700');
+          label.classList.remove('border-stone-200', 'hover:bg-stone-50');
+        } else {
+          label.classList.remove('bg-herb-100', 'border-herb-300', 'text-herb-700');
+          label.classList.add('border-stone-200', 'hover:bg-stone-50');
+        }
+      });
+    });
+    
+    // Ingredient management
+    const ingredientsList = document.getElementById('ingredients-list');
+    let ingredientCount = 0;
+    
+    function addIngredient(item = '', amount = '', note = '') {
+      const row = document.createElement('div');
+      row.className = 'flex gap-2 items-start';
+      row.innerHTML = `
+        <input type="text" name="ing_amount_${ingredientCount}" value="${amount}" placeholder="Amount" class="w-24 px-3 py-2 rounded-lg border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-400" />
+        <input type="text" name="ing_item_${ingredientCount}" value="${item}" placeholder="Ingredient" class="flex-1 px-3 py-2 rounded-lg border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-400" required />
+        <input type="text" name="ing_note_${ingredientCount}" value="${note}" placeholder="Note" class="w-32 px-3 py-2 rounded-lg border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-400" />
+        <button type="button" class="remove-ingredient p-2 text-stone-400 hover:text-red-500">×</button>
+      `;
+      ingredientsList?.appendChild(row);
+      ingredientCount++;
+      row.querySelector('.remove-ingredient')?.addEventListener('click', () => row.remove());
+    }
+    
+    document.getElementById('add-ingredient')?.addEventListener('click', () => addIngredient());
+    existingIngredients.forEach(ing => addIngredient(ing.item, ing.amount || '', ing.note || ''));
+    if (existingIngredients.length === 0) addIngredient();
+    
+    // Instruction management
+    const instructionsList = document.getElementById('instructions-list');
+    let instructionCount = 0;
+    
+    function addInstruction(text = '') {
+      const row = document.createElement('div');
+      row.className = 'flex gap-2 items-start';
+      row.innerHTML = `
+        <span class="flex-shrink-0 w-6 h-6 rounded-full bg-stone-100 text-stone-500 text-sm flex items-center justify-center mt-2">${instructionCount + 1}</span>
+        <textarea name="instruction_${instructionCount}" rows="2" class="flex-1 px-3 py-2 rounded-lg border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-400" required>${text}</textarea>
+        <button type="button" class="remove-instruction p-2 text-stone-400 hover:text-red-500">×</button>
+      `;
+      instructionsList?.appendChild(row);
+      instructionCount++;
+      row.querySelector('.remove-instruction')?.addEventListener('click', () => {
+        row.remove();
+        const rows = instructionsList?.querySelectorAll('div');
+        rows?.forEach((r, i) => {
+          const num = r.querySelector('span');
+          if (num) num.textContent = String(i + 1);
+        });
+      });
+    }
+    
+    document.getElementById('add-instruction')?.addEventListener('click', () => addInstruction());
+    existingInstructions.forEach(inst => addInstruction(inst));
+    if (existingInstructions.length === 0) addInstruction();
+    
+    // Form submission
+    const form = document.getElementById('variation-form');
+    const statusMessage = document.getElementById('status-message');
+    const sourceSlug = form.dataset.sourceSlug;
+    
+    function showStatus(message, isError = false) {
+      if (!statusMessage) return;
+      statusMessage.textContent = message;
+      statusMessage.className = `fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg ${isError ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`;
+      statusMessage.classList.remove('hidden');
+      setTimeout(() => statusMessage.classList.add('hidden'), 5000);
+    }
+    
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(form);
+      const submitBtn = form.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating...';
+      
+      try {
+        // Collect ingredients
+        const ingredients = [];
+        for (let i = 0; i < ingredientCount; i++) {
+          const item = formData.get(`ing_item_${i}`);
+          if (item) {
+            ingredients.push({
+              item,
+              amount: formData.get(`ing_amount_${i}`) || undefined,
+              note: formData.get(`ing_note_${i}`) || undefined,
+            });
+          }
+        }
+        
+        // Collect instructions
+        const instructions = [];
+        for (let i = 0; i < instructionCount; i++) {
+          const text = formData.get(`instruction_${i}`);
+          if (text) instructions.push(text);
+        }
+        
+        // Collect tags
+        const tags = formData.getAll('tags');
+        const customTags = (formData.get('custom_tags'))
+          ?.split(',')
+          .map(t => t.trim().toLowerCase())
+          .filter(Boolean) || [];
+        
+        const allTags = [...new Set([...tags, ...customTags])];
+        
+        const body = {
+          source_slug: sourceSlug,
+          new_title: formData.get('title'),
+          modifications: {
+            description: formData.get('description') || undefined,
+            servings: parseInt(formData.get('servings')) || 4,
+            source_url: formData.get('source_url') || undefined,
+            tags: allTags,
+            times: {
+              prep_minutes: parseInt(formData.get('prep_minutes')) || undefined,
+              cook_minutes: parseInt(formData.get('cook_minutes')) || undefined,
+            },
+            ingredients,
+            instructions,
+            notes: formData.get('notes') || undefined,
+          },
+        };
+        
+        const token = await window.getAuthToken?.();
+        if (!token) throw new Error('Not authenticated');
+        
+        const createResponse = await fetch('/api/create-variation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(body),
+        });
+        
+        if (!createResponse.ok) {
+          const error = await createResponse.json();
+          throw new Error(error.error || 'Failed to create variation');
+        }
+        
+        const { file, message } = await createResponse.json();
+        
+        const commitResponse = await fetch('/api/commit-recipes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ files: [file], message }),
+        });
+        
+        if (!commitResponse.ok) {
+          const error = await commitResponse.json();
+          throw new Error(error.error || 'Failed to commit');
+        }
+        
+        showStatus('Variation created successfully! Redirecting...');
+        setTimeout(() => {
+          window.location.href = '/admin';
+        }, 1500);
+        
+      } catch (error) {
+        showStatus(error.message || 'An error occurred', true);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Variation';
+      }
+    });
+  </script>
+</AdminLayout>
+

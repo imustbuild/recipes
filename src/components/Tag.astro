@@ -1,0 +1,38 @@
+---
+interface Props {
+  tag: string;
+  count?: number;
+  size?: 'sm' | 'md' | 'lg';
+  linked?: boolean;
+}
+
+const { tag, count, size = 'md', linked = true } = Astro.props;
+
+const sizeClasses = {
+  sm: 'text-xs px-2 py-0.5',
+  md: 'text-sm px-2.5 py-1',
+  lg: 'text-base px-3 py-1.5',
+};
+
+const baseClasses = `inline-flex items-center gap-1.5 rounded-full font-medium transition-colors ${sizeClasses[size]}`;
+const colorClasses = linked 
+  ? 'bg-herb-100 text-herb-700 hover:bg-herb-200' 
+  : 'bg-stone-100 text-stone-600';
+---
+
+{linked ? (
+  <a href={`/tags/${tag}`} class={`${baseClasses} ${colorClasses}`}>
+    {tag}
+    {count !== undefined && (
+      <span class="text-herb-500 font-normal">({count})</span>
+    )}
+  </a>
+) : (
+  <span class={`${baseClasses} ${colorClasses}`}>
+    {tag}
+    {count !== undefined && (
+      <span class="opacity-60 font-normal">({count})</span>
+    )}
+  </span>
+)}
+

@@ -1,0 +1,79 @@
+---
+import Layout from '@layouts/Layout.astro';
+import Header from '@components/Header.astro';
+import Footer from '@components/Footer.astro';
+import RecipeCard from '@components/RecipeCard.astro';
+import SearchBox from '@components/SearchBox.astro';
+import Tag from '@components/Tag.astro';
+import { loadAllRecipes, searchRecipes, getTagsIndex } from '@lib/recipes';
+
+const query = Astro.url.searchParams.get('q') || '';
+const allRecipes = loadAllRecipes();
+const recipes = query ? searchRecipes(allRecipes, query) : allRecipes;
+const tagsIndex = getTagsIndex(allRecipes);
+---
+
+<Layout title={query ? `Search: ${query} · Recipes` : 'All Recipes'}>
+  <div class="min-h-screen flex flex-col">
+    <Header currentPath="/recipes" />
+    
+    <main class="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+      <div class="mb-8">
+        <h1 class="font-display text-3xl sm:text-4xl font-semibold text-stone-900 mb-6">
+          {query ? `Results for "${query}"` : 'All Recipes'}
+        </h1>
+        
+        <div class="flex flex-col sm:flex-row gap-4 sm:items-center">
+          <div class="flex-1 max-w-md">
+            <SearchBox value={query} />
+          </div>
+          <p class="text-sm text-stone-500">
+            {recipes.length} {recipes.length === 1 ? 'recipe' : 'recipes'}
+          </p>
+        </div>
+      </div>
+      
+      <!-- Tag filters -->
+      {tagsIndex.tags.length > 0 && (
+        <div class="mb-8 pb-8 border-b border-stone-200">
+          <h2 class="text-sm font-medium text-stone-700 mb-3">Filter by tag</h2>
+          <div class="flex flex-wrap gap-2">
+            {tagsIndex.tags.slice(0, 12).map(({ tag, count }) => (
+              <Tag tag={tag} count={count} size="sm" />
+            ))}
+            {tagsIndex.tags.length > 12 && (
+              <a href="/tags" class="text-sm text-stone-500 hover:text-terracotta-600 self-center ml-2">
+                +{tagsIndex.tags.length - 12} more
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+      
+      <!-- Recipe Grid -->
+      {recipes.length > 0 ? (
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {recipes.map(recipe => (
+            <RecipeCard recipe={recipe} />
+          ))}
+        </div>
+      ) : (
+        <div class="text-center py-16">
+          <div class="text-5xl mb-4">🔍</div>
+          <h2 class="font-display text-xl font-semibold text-stone-900 mb-2">No recipes found</h2>
+          <p class="text-stone-600 mb-4">
+            {query ? `No recipes match "${query}"` : 'No recipes have been added yet.'}
+          </p>
+          {query && (
+            <a href="/recipes" class="text-terracotta-600 hover:text-terracotta-700 font-medium">
+              Clear search
+            </a>
+          )}
+        </div>
+      )}
+    </main>
+    
+    <Footer />
+  </div>
+</Layout>
+

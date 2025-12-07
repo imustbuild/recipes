@@ -1,0 +1,40 @@
+---
+interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = '' } = Astro.props;
+
+const links = [
+  { href: '/', label: 'Home' },
+  { href: '/recipes', label: 'Recipes' },
+  { href: '/tags', label: 'Tags' },
+];
+---
+
+<header class="border-b border-stone-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+  <nav class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+      <a href="/" class="font-display text-xl font-semibold text-terracotta-600 hover:text-terracotta-700 transition-colors">
+        recipes
+      </a>
+      
+      <div class="flex items-center gap-1">
+        {links.map(link => (
+          <a
+            href={link.href}
+            class:list={[
+              'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+              currentPath === link.href || (link.href !== '/' && currentPath.startsWith(link.href))
+                ? 'bg-stone-100 text-stone-900'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
+            ]}
+          >
+            {link.label}
+          </a>
+        ))}
+      </div>
+    </div>
+  </nav>
+</header>
+
